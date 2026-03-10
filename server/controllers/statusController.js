@@ -1,6 +1,6 @@
-const Payment = require('../models/Payment');
+import Payment from '../models/Payment.js';
 
-exports.getStatus = async (req, res) => {
+export const getStatus = async (req, res) => {
     try {
         const payment = await Payment.findOne({ phone: req.params.phone });
         if (!payment) return res.status(404).send({ message: 'User not found' });
