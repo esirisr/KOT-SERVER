@@ -43,3 +43,13 @@ export const login = async (req, res) => {
         res.status(500).send({ message: 'Server error' });
     }
 };
+
+// New function to get all users (for testing)
+export const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({}, '-password'); // Find all but exclude passwords for security
+        res.send(users);
+    } catch (err) {
+        res.status(500).send({ message: 'Server error' });
+    }
+};
