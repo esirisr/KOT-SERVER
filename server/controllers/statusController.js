@@ -35,8 +35,8 @@ export const updatePaymentStatus = async (req, res) => {
         if (isSuspended !== undefined) payment.isSuspended = isSuspended;
 
         if (daysToAdd) {
-            const currentExpiry = payment.expiryDate > new Date() ? payment.expiryDate : new Date();
-            payment.expiryDate = new Date(currentExpiry.getTime() + (daysToAdd * 24 * 60 * 60 * 1000));
+            // Override expiry date to be exactly X days from TODAY
+            payment.expiryDate = new Date(Date.now() + (daysToAdd * 24 * 60 * 60 * 1000));
         }
 
         payment.lastUpdated = Date.now();
