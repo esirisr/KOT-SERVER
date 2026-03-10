@@ -44,12 +44,25 @@ export const login = async (req, res) => {
     }
 };
 
-// New function to get all users (for testing)
 export const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find({}, '-password'); // Find all but exclude passwords for security
+        const users = await User.find({}, '-password');
         res.send(users);
     } catch (err) {
         res.status(500).send({ message: 'Server error' });
+    }
+};
+
+// --- ADMIN FUNCTIONS ---
+
+// Delete User and their Payment record
+export const deleteUser = async (req, res) => {
+    try {
+        const { phone } = req.params;
+        await User.findOneAndDelete({ phone });
+        await Payment.findOneAndDelete({ phone });
+        res.send({ message: 'User deleted successfully' });
+    } catch (err) {
+        res.status(500).send({ message: 'Error deleting user' });
     }
 };

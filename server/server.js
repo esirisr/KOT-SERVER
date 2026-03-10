@@ -14,7 +14,14 @@ connectDB();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+
+// Enable CORS for all origins (Required for the Admin Dashboard to work)
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(logger);
 
 // Health Check
