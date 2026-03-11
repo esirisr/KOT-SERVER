@@ -4,22 +4,32 @@ import Payment from '../models/Payment.js';
 
 export const register = async (req, res) => {
     try {
-        const { phone, password } = req.body;
+        const { phone, password, deviceId } = req.body;
         if (!phone || !password) return res.status(400).send({ message: 'Phone and Password are required' });
 
-        let user = await User.findOne({ phone });
-        if (user) return res.status(400).send({ message: 'User already registered' });
+        // Improve duplicate check logic: Only check deviceId if it's actually provided
+        const query = { $or: [{ phone }] };
+        if (deviceId && deviceId.trim() !== "") {
+            query.$or.push({ deviceId: deviceId.trim() });
+        }
+
+        let existingUser = await User.findOne(query);
+
+        if (existingUser) {
+            return res.status(400).send({ message: 'Account or device already exists' });
+        }
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        user = new User({ phone, password: hashedPassword });
+        const user = new User({ phone, password: hashedPassword, deviceId: deviceId?.trim() });
         await user.save();
 
+        // Server-side control: Grant 30 days trial automatically on first registration
         const payment = new Payment({
             phone,
             isPaid: true,
-            expiryDate: new Date(new Date().getTime() + (30 * 24 * 60 * 60 * 1000))
+            expiryDate: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000))
         });
         await payment.save();
 
@@ -53,9 +63,6 @@ export const getAllUsers = async (req, res) => {
     }
 };
 
-// --- ADMIN FUNCTIONS ---
-
-// Delete User and their Payment record
 export const deleteUser = async (req, res) => {
     try {
         const { phone } = req.params;
