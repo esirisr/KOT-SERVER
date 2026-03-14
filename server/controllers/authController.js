@@ -4,28 +4,33 @@ import Payment from '../models/Payment.js';
 
 export const register = async (req, res) => {
     try {
-        const { phone, password, deviceId } = req.body;
-        if (!phone || !password) return res.status(400).send({ message: 'Phone and Password are required' });
-
-        // Improve duplicate check logic: Only check deviceId if it's actually provided
-        const query = { $or: [{ phone }] };
-        if (deviceId && deviceId.trim() !== "") {
-            query.$or.push({ deviceId: deviceId.trim() });
+        const { phone, password, storeNumber, deviceId } = req.body;
+        if (!phone || !password || !storeNumber) {
+            return res.status(400).send({ message: 'Phone, Password, and Store Number are required' });
         }
 
-        let existingUser = await User.findOne(query);
+        // Check if phone or storeNumber already exists
+        const existingByPhone = await User.findOne({ phone });
+        if (existingByPhone) {
+            return res.status(400).send({ message: 'Phone number already registered' });
+        }
 
-        if (existingUser) {
-            return res.status(400).send({ message: 'Account or device already exists' });
+        const existingByStore = await User.findOne({ storeNumber });
+        if (existingByStore) {
+            return res.status(400).send({ message: 'PLEASE CREATE YOUR OWN ACOUNT. Store already taken.' });
         }
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const user = new User({ phone, password: hashedPassword, deviceId: deviceId?.trim() });
+        const user = new User({
+            phone,
+            password: hashedPassword,
+            storeNumber,
+            deviceId: deviceId?.trim()
+        });
         await user.save();
 
-        // Server-side control: Grant 30 days trial automatically on first registration
         const payment = new Payment({
             phone,
             isPaid: true,
@@ -48,7 +53,10 @@ export const login = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).send({ message: 'Invalid credentials' });
 
-        res.send({ message: 'Login successful' });
+        res.send({
+            message: 'Login successful',
+            storeNumber: user.storeNumber
+        });
     } catch (err) {
         res.status(500).send({ message: 'Server error' });
     }
