@@ -35,7 +35,6 @@ export const updatePaymentStatus = async (req, res) => {
         if (isSuspended !== undefined) payment.isSuspended = isSuspended;
 
         if (daysToAdd) {
-            // Override expiry date to be exactly X days from TODAY
             payment.expiryDate = new Date(Date.now() + (daysToAdd * 24 * 60 * 60 * 1000));
         }
 
@@ -45,6 +44,35 @@ export const updatePaymentStatus = async (req, res) => {
         res.send({ message: 'Status updated', payment });
     } catch (err) {
         res.status(500).send({ message: 'Error updating status' });
+    }
+};
+
+/**
+ * NEW: Checks if a store number is unique or already bound to the requesting phone.
+ */
+export const checkStoreUnique = async (req, res) => {
+    try {
+        const { phone, store } = req.query;
+        if (!phone || !store) return res.status(400).send({ message: 'Missing parameters' });
+
+        // Find if ANY user has this store number
+        const existingOwner = await User.findOne({ storeNumber: store });
+
+        if (!existingOwner) {
+            // Store is brand new, let them have it (Update DB)
+            await User.findOneAndUpdate({ phone }, { storeNumber: store });
+            return res.send({ isActive: true, message: "Store assigned" });
+        }
+
+        if (existingOwner.phone === phone) {
+            // User already owns this store, it's fine
+            return res.send({ isActive: true, message: "Owner verified" });
+        }
+
+        // Someone else owns this store number
+        res.status(403).send({ isActive: false, message: "PLEASE CREATE YOUR OWN ACOUNT" });
+    } catch (err) {
+        res.status(500).send({ message: 'Server error' });
     }
 };
 
